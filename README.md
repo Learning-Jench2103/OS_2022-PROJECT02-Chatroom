@@ -7,11 +7,11 @@
     ```
 - Execute the server program
     ```shell
-    $ ./bin/server <IP_ADDRESS> <PORT>
+    $ ./bin/server <IP_ADDRESS>:<PORT>
     ```
 - Execute the client program
     ```shell
-    $ ./bin/client <IP_ADDRESS> <PORT>
+    $ ./bin/client <IP_ADDRESS>:<PORT>
     ```
 - Removes all the executable files
     ```shell

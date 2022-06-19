@@ -25,8 +25,8 @@ void receiver(int sockfd) {
 
     while (true) {
         result = recv(sockfd, receive_buffer, sizeof(receive_buffer), 0);
-        if (result == -1 || receive_buffer[0] == 0) {
-            error_handler("Fail to connect with the server.");
+        if (result == -1 || result == 0 || receive_buffer[0] == 0) {
+            error_handler("Fail to connect with the server.", 1);
         }
         printf("%s\n", receive_buffer);
     }
@@ -35,8 +35,9 @@ void receiver(int sockfd) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        error_handler("Please pass just 2 parameters as IP ADDRESS and PORT.");
+    WebAddr web_addr;
+    if (argc != 2 || !check_web_addr(string(argv[1]), &web_addr)) {
+        error_handler("Please pass the address of the server in the format of \"<IP ADDRESS>:<PORT>\".", 0);
     }
 
     struct sigaction sigIntHandler;
@@ -48,16 +49,14 @@ int main(int argc, char **argv) {
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr = {AF_INET};
     char send_buffer[MAX_MSG_LENGTH];
-    string server_ip = argv[1];
-    string server_port = argv[2];
     int result = 0;
 
-    addr.sin_addr.s_addr = inet_addr(server_ip.c_str());
-    addr.sin_port = htons(stoi(server_port));
+    addr.sin_addr.s_addr = web_addr.addr;
+    addr.sin_port = web_addr.port;
 
     result = connect(sockfd, (struct sockaddr *)&addr, sizeof(addr));
     if (result == -1) {
-        error_handler("Fail to connect with the server.");
+        error_handler("Fail to connect with the server.", 0);
     }
 
     printf("Please enter your username: ");
@@ -66,7 +65,7 @@ int main(int argc, char **argv) {
     sprintf(send_buffer, "%s joined the chat room.", username.c_str());
     result = send(sockfd, send_buffer, strlen(send_buffer), 0);
     if (result == -1) {
-        error_handler("Fail to send the message.");
+        error_handler("Fail to send the message.", 1);
     }
 
     printf("\nWelcome %s!\n\n", username.c_str());
@@ -87,7 +86,7 @@ int main(int argc, char **argv) {
         sprintf(send_buffer, "%s: %s", username.c_str(), input.c_str());
         result = send(sockfd, send_buffer, strlen(send_buffer), 0);
         if (result == -1) {
-            error_handler("Fail to send the message.");
+            error_handler("Fail to send the message.", 1);
         }
     }
 

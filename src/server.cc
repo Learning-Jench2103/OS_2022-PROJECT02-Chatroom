@@ -17,26 +17,19 @@
 
 using namespace std;
 
-typedef struct socket_client_info {
-    int descriptor;
-    sockaddr_in addr;
-} socket_client_info;
-
-typedef vector<socket_client_info *>::iterator socket_client_info_it;
-
 int sockfd = -1;
 mutex mu;
-vector<socket_client_info *> socket_client_vec;
+vector<SocketClientInfo *> socket_client_vec;
 
 void quit_handler(int s) {
-    for (socket_client_info_it it = socket_client_vec.begin(); it != socket_client_vec.end(); ++it) {
+    for (SocketClientInfoIterator it = socket_client_vec.begin(); it != socket_client_vec.end(); ++it) {
         delete (*it);
     }
     printf("\n");
     exit(0);
 }
 
-void client_handler(socket_client_info *client_ptr) {
+void client_handler(SocketClientInfo *client_ptr) {
     char buffer[MAX_MSG_LENGTH];
     int result = 0;
 
@@ -46,14 +39,14 @@ void client_handler(socket_client_info *client_ptr) {
         result = recv(client_ptr->descriptor, buffer, sizeof(buffer), 0);
         if (result == -1 || buffer[0] == 0) {
             close(client_ptr->descriptor);
-            socket_client_info_it it = find(socket_client_vec.begin(), socket_client_vec.end(), client_ptr);
+            SocketClientInfoIterator it = find(socket_client_vec.begin(), socket_client_vec.end(), client_ptr);
             delete (*it);
             socket_client_vec.erase(it);
             break;
         }
 
         mu.lock();
-        for (socket_client_info_it it = socket_client_vec.begin(); it != socket_client_vec.end(); ++it) {
+        for (SocketClientInfoIterator it = socket_client_vec.begin(); it != socket_client_vec.end(); ++it) {
             if (*it == client_ptr || (*it)->descriptor == 0) {
                 continue;
             }
@@ -67,8 +60,9 @@ void client_handler(socket_client_info *client_ptr) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 3) {
-        error_handler("Please pass just 2 parameters as IP ADDRESS and PORT.");
+    WebAddr web_addr;
+    if (argc != 2 || !check_web_addr(string(argv[1]), &web_addr)) {
+        error_handler("Please pass the address of the server in the format of \"<IP ADDRESS>:<PORT>\".", 0);
     }
 
     struct sigaction sigIntHandler;
@@ -77,22 +71,20 @@ int main(int argc, char **argv) {
     sigIntHandler.sa_flags = 0;
     sigaction(SIGINT, &sigIntHandler, NULL);
 
-    string server_ip = argv[1];
-    string server_port = argv[2];
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr = {AF_INET};
     int result = 0;
 
     if (sockfd == -1) {
-        error_handler("Fail to create a socket instance.");
+        error_handler("Fail to create a socket instance.", 0);
     }
 
-    addr.sin_addr.s_addr = inet_addr(server_ip.c_str());
-    addr.sin_port = htons(stoi(server_port));
+    addr.sin_addr.s_addr = web_addr.addr;
+    addr.sin_port = web_addr.port;
 
     result = bind(sockfd, (sockaddr *)&addr, sizeof(addr));
     if (result == -1) {
-        error_handler("Fail to bind the ip address.");
+        error_handler("Fail to bind the ip address.", 0);
     }
 
     printf("Server started!\n");
@@ -100,7 +92,7 @@ int main(int argc, char **argv) {
     listen(sockfd, MAX_CLIENT);
 
     while (socket_client_vec.size() <= MAX_CLIENT) {
-        socket_client_info *client_ptr = new socket_client_info;
+        SocketClientInfo *client_ptr = new SocketClientInfo;
         socket_client_vec.push_back(client_ptr);
         socklen_t addr_len = sizeof(client_ptr->addr);
         client_ptr->descriptor = accept(sockfd, (sockaddr *)&(client_ptr->addr), &addr_len);
