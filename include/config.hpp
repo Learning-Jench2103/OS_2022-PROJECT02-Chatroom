@@ -22,11 +22,7 @@ typedef struct SocketClientInfo {
 typedef vector<SocketClientInfo*>::iterator SocketClientInfoIterator;
 
 void error_handler(string msg, size_t endline) {
-    for (size_t i = 0; i < endline; ++i) {
-        cout << endl;
-    }
-    cout << "Error: " << msg << endl
-         << endl;
+    cout << string(endline, '\n') << "Error: " << msg << endl << endl;
     exit(1);
 }
 

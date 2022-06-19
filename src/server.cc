@@ -22,6 +22,7 @@ mutex mu;
 vector<SocketClientInfo *> socket_client_vec;
 
 void quit_handler(int s) {
+    // release dynamic declared variables
     for (SocketClientInfoIterator it = socket_client_vec.begin(); it != socket_client_vec.end(); ++it) {
         delete (*it);
     }
@@ -36,6 +37,7 @@ void client_handler(SocketClientInfo *client_ptr) {
     while (true) {
         bzero(buffer, sizeof(buffer));
 
+        // receive messages from client
         result = recv(client_ptr->descriptor, buffer, sizeof(buffer), 0);
         if (result == -1 || buffer[0] == 0) {
             close(client_ptr->descriptor);
@@ -50,6 +52,7 @@ void client_handler(SocketClientInfo *client_ptr) {
             if (*it == client_ptr || (*it)->descriptor == 0) {
                 continue;
             }
+            // broadcast to every client except the sender
             send((*it)->descriptor, buffer, sizeof(buffer), 0);
         }
         printf("%s\n", buffer);
@@ -60,17 +63,20 @@ void client_handler(SocketClientInfo *client_ptr) {
 }
 
 int main(int argc, char **argv) {
+    // check the format of the argument and parse it
     WebAddr web_addr;
     if (argc != 2 || !check_web_addr(string(argv[1]), &web_addr)) {
         error_handler("Please pass the address of the server in the format of \"<IP ADDRESS>:<PORT>\".", 0);
     }
 
+    // handle ctrl + c termination
     struct sigaction sigIntHandler;
     sigIntHandler.sa_handler = quit_handler;
     sigemptyset(&sigIntHandler.sa_mask);
     sigIntHandler.sa_flags = 0;
     sigaction(SIGINT, &sigIntHandler, NULL);
 
+    // create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     struct sockaddr_in addr = {AF_INET};
     int result = 0;
@@ -79,6 +85,7 @@ int main(int argc, char **argv) {
         error_handler("Fail to create a socket instance.", 0);
     }
 
+    // bind the socket instance with given address and port
     addr.sin_addr.s_addr = web_addr.addr;
     addr.sin_port = web_addr.port;
 
@@ -87,7 +94,7 @@ int main(int argc, char **argv) {
         error_handler("Fail to bind the ip address.", 0);
     }
 
-    printf("Server started!\n");
+    printf("Server started!\n\n");
 
     listen(sockfd, MAX_CLIENT);
 
@@ -95,7 +102,11 @@ int main(int argc, char **argv) {
         SocketClientInfo *client_ptr = new SocketClientInfo;
         socket_client_vec.push_back(client_ptr);
         socklen_t addr_len = sizeof(client_ptr->addr);
+
+        // accept new connect requests
         client_ptr->descriptor = accept(sockfd, (sockaddr *)&(client_ptr->addr), &addr_len);
+
+        // create a handler thread for this client
         thread client_handler_thread(client_handler, client_ptr);
         client_handler_thread.detach();
     }

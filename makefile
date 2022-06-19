@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -std=c++11 -pthread
+CXXFLAGS := -std=c++11 -pthread -O2
 INCLUDE_DIR := include
 SRC_DIR := src
 BIN_DIR := bin

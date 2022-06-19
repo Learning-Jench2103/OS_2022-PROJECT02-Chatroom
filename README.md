@@ -13,7 +13,7 @@
     ```shell
     $ ./bin/client <IP_ADDRESS>:<PORT>
     ```
-- Removes all the executable files
+- Remove all the executable files
     ```shell
     $ make clean
     ```
