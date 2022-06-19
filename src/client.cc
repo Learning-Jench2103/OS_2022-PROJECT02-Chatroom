@@ -83,6 +83,10 @@ int main(int argc, char **argv) {
             return 0;
         }
 
+        if (input.length() == 0) {
+            continue;
+        }
+
         sprintf(send_buffer, "%s: %s", username.c_str(), input.c_str());
         result = send(sockfd, send_buffer, strlen(send_buffer), 0);
         if (result == -1) {
